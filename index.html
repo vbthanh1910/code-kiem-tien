@@ -1,0 +1,1513 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartNutri - Trợ Lý Tư Vấn Dinh Dưỡng & Kết Nối Server</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            200: '#bbf7d0',
+                            300: '#86efac',
+                            400: '#4ade80',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                            800: '#166534',
+                            900: '#14532d',
+                        },
+                        mint: {
+                            50: '#f0fdfa',
+                            100: '#ccfbf1',
+                            200: '#99f6e4',
+                            500: '#14b8a6',
+                            600: '#0d9488',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <!-- Chart.js CDN for Macro Chart -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+        }
+        
+        .glass-card {
+            background: rgba(255, 255, 255, 0.96);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        @keyframes pulseGlow {
+            0%, 100% { box-shadow: 0 0 15px rgba(34, 197, 94, 0.25); }
+            50% { box-shadow: 0 0 25px rgba(34, 197, 94, 0.55); }
+        }
+
+        .active-pulse {
+            animation: pulseGlow 2s infinite;
+        }
+
+        /* Gauge meter marker transitions */
+        .bmi-marker {
+            transition: left 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+            body {
+                background: white !important;
+                color: black !important;
+            }
+            .print-full-width {
+                width: 100% !important;
+                max-width: 100% !important;
+                box-shadow: none !important;
+                border: none !important;
+            }
+        }
+    </style>
+</head>
+<body class="text-slate-800 antialiased min-h-screen flex flex-col justify-between selection:bg-brand-500 selection:text-white">
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="fixed top-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <header class="bg-white/90 backdrop-blur-md sticky top-0 z-40 border-b border-slate-200/80 shadow-xs no-print">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3 cursor-pointer" onclick="goToStep(1)">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-mint-500 flex items-center justify-center text-white shadow-md shadow-brand-500/20">
+                    <i data-lucide="apple" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xl font-extrabold bg-gradient-to-r from-brand-700 to-mint-600 bg-clip-text text-transparent">SmartNutri</span>
+                        <span class="text-[10px] font-bold uppercase tracking-wider bg-brand-100 text-brand-800 px-2 py-0.5 rounded-md">v2.5 Pro</span>
+                    </div>
+                    <p class="hidden sm:block text-[11px] text-slate-500 font-medium">Tư Vấn Dinh Dưỡng, Thực Đơn 7 Ngày & Dispatch API Server</p>
+                </div>
+            </div>
+
+            <!-- Steps Indicator -->
+            <div class="flex items-center gap-2 sm:gap-4 text-xs sm:text-sm font-medium">
+                <div id="step-badge-1" class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-brand-100 text-brand-800 transition-all cursor-pointer" onclick="goToStep(1)">
+                    <span class="w-5 h-5 rounded-full bg-brand-600 text-white flex items-center justify-center text-xs font-bold">1</span>
+                    <span class="hidden xs:inline">1. Chỉ Số Cơ Thể</span>
+                </div>
+                <i data-lucide="chevron-right" class="w-4 h-4 text-slate-400"></i>
+                <div id="step-badge-2" class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100 text-slate-400 transition-all cursor-pointer" onclick="goToStep(2)">
+                    <span class="w-5 h-5 rounded-full bg-slate-300 text-slate-600 flex items-center justify-center text-xs font-bold">2</span>
+                    <span class="hidden xs:inline">2. Báo Cáo & Thực Đơn</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow w-full">
+
+        <!-- SCREEN 1: INPUT FORM & SERVER CONFIGURATION -->
+        <section id="screen-form" class="transition-all duration-500 ease-in-out">
+            <div class="text-center max-w-2xl mx-auto mb-8">
+                <span class="px-3 py-1 rounded-full text-xs font-semibold bg-brand-100 text-brand-700 inline-block mb-3">
+                    🌱 Phân Tích Dinh Dưỡng Chuẩn Khoa Học & Truyền Dữ Liệu Chéo
+                </span>
+                <h1 class="text-2xl sm:text-4xl font-black text-slate-900 tracking-tight mb-3">
+                    Thiết Lập Chỉ Số Cơ Thể & Server
+                </h1>
+                <p class="text-slate-600 text-sm sm:text-base">
+                    Tự động tính toán BMR, TDEE, phân bổ Macros, tạo thực đơn 7 ngày và đồng bộ báo cáo kết quả sang Server từ xa qua HTTP REST API.
+                </p>
+            </div>
+
+            <form id="nutrition-form" onsubmit="handleFormSubmit(event)" class="space-y-8 max-w-4xl mx-auto">
+                
+                <!-- Card 1: Thông tin chỉ số sinh học -->
+                <div class="glass-card rounded-2xl p-6 sm:p-8 shadow-xs">
+                    <div class="flex items-center justify-between mb-6 pb-4 border-b border-slate-100">
+                        <div class="flex items-center gap-3">
+                            <div class="p-2.5 bg-brand-100 text-brand-700 rounded-xl">
+                                <i data-lucide="user" class="w-5 h-5"></i>
+                            </div>
+                            <div>
+                                <h2 class="text-lg font-bold text-slate-900">1. Chỉ Số Cơ Thể Cơ Bản</h2>
+                                <p class="text-xs text-slate-500">Giúp xác định tỷ lệ BMI & Tốc độ trao đổi chất cơ bản (BMR)</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <!-- Giới tính -->
+                        <div class="sm:col-span-2 lg:col-span-1">
+                            <label class="block text-sm font-semibold text-slate-700 mb-2">Giới Tính</label>
+                            <div class="grid grid-cols-2 gap-3">
+                                <label class="relative flex items-center justify-center p-3 border-2 rounded-xl cursor-pointer transition-all border-brand-500 bg-brand-50/50 text-brand-800 font-medium text-sm hover:border-brand-400" id="gender-male-label">
+                                    <input type="radio" name="gender" value="male" checked onchange="updateGenderUI()" class="sr-only">
+                                    <i data-lucide="mars" class="w-4 h-4 mr-2 text-brand-600"></i> Nam
+                                </label>
+                                <label class="relative flex items-center justify-center p-3 border-2 rounded-xl cursor-pointer transition-all border-slate-200 bg-white text-slate-600 font-medium text-sm hover:border-slate-300" id="gender-female-label">
+                                    <input type="radio" name="gender" value="female" onchange="updateGenderUI()" class="sr-only">
+                                    <i data-lucide="venus" class="w-4 h-4 mr-2 text-pink-500"></i> Nữ
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Tuổi -->
+                        <div>
+                            <label for="age" class="block text-sm font-semibold text-slate-700 mb-2">Tuổi (Năm)</label>
+                            <div class="relative">
+                                <input type="number" id="age" min="10" max="100" value="25" required
+                                       class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition text-slate-900 font-bold">
+                                <span class="absolute right-3 top-3.5 text-xs text-slate-400 font-medium">tuổi</span>
+                            </div>
+                        </div>
+
+                        <!-- Chiều cao -->
+                        <div>
+                            <label for="height" class="block text-sm font-semibold text-slate-700 mb-2">Chiều Cao (cm)</label>
+                            <div class="relative">
+                                <input type="number" id="height" min="100" max="230" value="168" required
+                                       class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition text-slate-900 font-bold">
+                                <span class="absolute right-3 top-3.5 text-xs text-slate-400 font-medium">cm</span>
+                            </div>
+                        </div>
+
+                        <!-- Cân nặng -->
+                        <div>
+                            <label for="weight" class="block text-sm font-semibold text-slate-700 mb-2">Cân Nặng (kg)</label>
+                            <div class="relative">
+                                <input type="number" id="weight" min="30" max="200" step="0.5" value="62" required
+                                       class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition text-slate-900 font-bold">
+                                <span class="absolute right-3 top-3.5 text-xs text-slate-400 font-medium">kg</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 2: Mức độ vận động & Mục tiêu -->
+                <div class="glass-card rounded-2xl p-6 sm:p-8 shadow-xs">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        
+                        <!-- Mức độ vận động -->
+                        <div>
+                            <div class="flex items-center gap-3 mb-4">
+                                <div class="p-2.5 bg-mint-100 text-mint-600 rounded-xl">
+                                    <i data-lucide="activity" class="w-5 h-5"></i>
+                                </div>
+                                <div>
+                                    <h2 class="text-base font-bold text-slate-900">Mức Độ Vận Động</h2>
+                                    <p class="text-xs text-slate-500">Đánh giá hệ số tiêu hao năng lượng sinh hoạt (TDEE)</p>
+                                </div>
+                            </div>
+
+                            <div class="space-y-3">
+                                <label class="flex items-start p-3 border rounded-xl cursor-pointer transition hover:bg-slate-50 border-slate-200">
+                                    <input type="radio" name="activity" value="1.2" checked class="mt-1 text-brand-600 focus:ring-brand-500">
+                                    <div class="ml-3">
+                                        <span class="block text-sm font-semibold text-slate-800">Ít vận động (Sedentary)</span>
+                                        <span class="block text-xs text-slate-500">Làm việc văn phòng ngồi nhiều, ít tập thể thao</span>
+                                    </div>
+                                </label>
+
+                                <label class="flex items-start p-3 border rounded-xl cursor-pointer transition hover:bg-slate-50 border-slate-200">
+                                    <input type="radio" name="activity" value="1.375" class="mt-1 text-brand-600 focus:ring-brand-500">
+                                    <div class="ml-3">
+                                        <span class="block text-sm font-semibold text-slate-800">Vận động nhẹ</span>
+                                        <span class="block text-xs text-slate-500">Tập luyện nhẹ nhàng 1 - 3 buổi / tuần</span>
+                                    </div>
+                                </label>
+
+                                <label class="flex items-start p-3 border rounded-xl cursor-pointer transition hover:bg-slate-50 border-slate-200">
+                                    <input type="radio" name="activity" value="1.55" class="mt-1 text-brand-600 focus:ring-brand-500">
+                                    <div class="ml-3">
+                                        <span class="block text-sm font-semibold text-slate-800">Vận động vừa phải</span>
+                                        <span class="block text-xs text-slate-500">Tập thể thao vừa 3 - 5 buổi / tuần</span>
+                                    </div>
+                                </label>
+
+                                <label class="flex items-start p-3 border rounded-xl cursor-pointer transition hover:bg-slate-50 border-slate-200">
+                                    <input type="radio" name="activity" value="1.725" class="mt-1 text-brand-600 focus:ring-brand-500">
+                                    <div class="ml-3">
+                                        <span class="block text-sm font-semibold text-slate-800">Vận động nhiều</span>
+                                        <span class="block text-xs text-slate-500">Tập nặng 6 - 7 buổi / tuần hoặc lao động thể lực</span>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Mục tiêu sức khỏe -->
+                        <div>
+                            <div class="flex items-center gap-3 mb-4">
+                                <div class="p-2.5 bg-amber-100 text-amber-700 rounded-xl">
+                                    <i data-lucide="target" class="w-5 h-5"></i>
+                                </div>
+                                <div>
+                                    <h2 class="text-base font-bold text-slate-900">Mục Tiêu Thể Trạng</h2>
+                                    <p class="text-xs text-slate-500">Tự động phân bổ mức Calo & tỷ lệ dinh dưỡng</p>
+                                </div>
+                            </div>
+
+                            <div class="space-y-3">
+                                <label class="flex items-center p-3 border rounded-xl cursor-pointer transition hover:bg-slate-50 border-slate-200">
+                                    <input type="radio" name="goal" value="lose" checked class="text-brand-600 focus:ring-brand-500">
+                                    <div class="ml-3 flex items-center justify-between w-full">
+                                        <div>
+                                            <span class="block text-sm font-semibold text-slate-800">Giảm cân an toàn</span>
+                                            <span class="block text-xs text-slate-500">Thâm hụt calo loại bỏ mỡ thừa</span>
+                                        </div>
+                                        <span class="text-xs bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded">-500 kcal</span>
+                                    </div>
+                                </label>
+
+                                <label class="flex items-center p-3 border rounded-xl cursor-pointer transition hover:bg-slate-50 border-slate-200">
+                                    <input type="radio" name="goal" value="maintain" class="text-brand-600 focus:ring-brand-500">
+                                    <div class="ml-3 flex items-center justify-between w-full">
+                                        <div>
+                                            <span class="block text-sm font-semibold text-slate-800">Giữ dáng / Cân bằng</span>
+                                            <span class="block text-xs text-slate-500">Duy trì cân nặng & sức bền</span>
+                                        </div>
+                                        <span class="text-xs bg-blue-100 text-blue-800 font-bold px-2 py-0.5 rounded">Cân bằng</span>
+                                    </div>
+                                </label>
+
+                                <label class="flex items-center p-3 border rounded-xl cursor-pointer transition hover:bg-slate-50 border-slate-200">
+                                    <input type="radio" name="goal" value="gain" class="text-brand-600 focus:ring-brand-500">
+                                    <div class="ml-3 flex items-center justify-between w-full">
+                                        <div>
+                                            <span class="block text-sm font-semibold text-slate-800">Tăng cân lành mạnh</span>
+                                            <span class="block text-xs text-slate-500">Bổ sung calo chuẩn khoa học</span>
+                                        </div>
+                                        <span class="text-xs bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded">+400 kcal</span>
+                                    </div>
+                                </label>
+
+                                <label class="flex items-center p-3 border rounded-xl cursor-pointer transition hover:bg-slate-50 border-slate-200">
+                                    <input type="radio" name="goal" value="muscle" class="text-brand-600 focus:ring-brand-500">
+                                    <div class="ml-3 flex items-center justify-between w-full">
+                                        <div>
+                                            <span class="block text-sm font-semibold text-slate-800">Tăng cơ & Giảm mỡ</span>
+                                            <span class="block text-xs text-slate-500">Ưu tiên đạm cao xây dựng cơ bắp</span>
+                                        </div>
+                                        <span class="text-xs bg-purple-100 text-purple-800 font-bold px-2 py-0.5 rounded">+300 kcal</span>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- Card 3: Thói quen ăn uống hiện tại -->
+                <div class="glass-card rounded-2xl p-6 sm:p-8 shadow-xs">
+                    <div class="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100">
+                        <div class="p-2.5 bg-rose-100 text-rose-600 rounded-xl">
+                            <i data-lucide="utensils" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-lg font-bold text-slate-900">3. Thói Quen Ăn Uống Hiện Tại</h2>
+                            <p class="text-xs text-slate-500">Hệ thống sẽ phân tích các thói quen này để tư vấn giải pháp khắc phục</p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <label class="flex items-start p-3.5 border border-slate-200 rounded-xl cursor-pointer transition hover:border-brand-400 hover:bg-brand-50/30">
+                            <input type="checkbox" name="habit" value="skip_breakfast" class="mt-1 rounded text-brand-600 focus:ring-brand-500 w-4 h-4">
+                            <span class="ml-3 text-sm font-medium text-slate-700">Hay bỏ bữa sáng</span>
+                        </label>
+
+                        <label class="flex items-start p-3.5 border border-slate-200 rounded-xl cursor-pointer transition hover:border-brand-400 hover:bg-brand-50/30">
+                            <input type="checkbox" name="habit" value="low_water" class="mt-1 rounded text-brand-600 focus:ring-brand-500 w-4 h-4">
+                            <span class="ml-3 text-sm font-medium text-slate-700">Uống ít nước (&lt; 1.5L/ngày)</span>
+                        </label>
+
+                        <label class="flex items-start p-3.5 border border-slate-200 rounded-xl cursor-pointer transition hover:border-brand-400 hover:bg-brand-50/30">
+                            <input type="checkbox" name="habit" value="low_veggies" class="mt-1 rounded text-brand-600 focus:ring-brand-500 w-4 h-4">
+                            <span class="ml-3 text-sm font-medium text-slate-700">Ít ăn rau xanh / trái cây</span>
+                        </label>
+
+                        <label class="flex items-start p-3.5 border border-slate-200 rounded-xl cursor-pointer transition hover:border-brand-400 hover:bg-brand-50/30">
+                            <input type="checkbox" name="habit" value="sweet_tooth" class="mt-1 rounded text-brand-600 focus:ring-brand-500 w-4 h-4">
+                            <span class="ml-3 text-sm font-medium text-slate-700">Thích đồ ngọt / trà sữa</span>
+                        </label>
+
+                        <label class="flex items-start p-3.5 border border-slate-200 rounded-xl cursor-pointer transition hover:border-brand-400 hover:bg-brand-50/30">
+                            <input type="checkbox" name="habit" value="late_snack" class="mt-1 rounded text-brand-600 focus:ring-brand-500 w-4 h-4">
+                            <span class="ml-3 text-sm font-medium text-slate-700">Hay ăn đêm / thức khuya</span>
+                        </label>
+
+                        <label class="flex items-start p-3.5 border border-slate-200 rounded-xl cursor-pointer transition hover:border-brand-400 hover:bg-brand-50/30">
+                            <input type="checkbox" name="habit" value="fried_food" class="mt-1 rounded text-brand-600 focus:ring-brand-500 w-4 h-4">
+                            <span class="ml-3 text-sm font-medium text-slate-700">Ăn nhiều đồ chiên xào dầu mỡ</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Card 4: Cấu hình địa chỉ Máy Nhận (Remote Server) ĐÃ ẨN -->
+                <div hidden class="glass-card rounded-2xl p-6 sm:p-8 shadow-xs border-2 border-indigo-200 bg-indigo-50/20">
+                    <div class="flex items-center gap-3 mb-4 pb-3 border-b border-indigo-100">
+                        <div class="p-2.5 bg-indigo-100 text-indigo-700 rounded-xl">
+                            <i data-lucide="server" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-lg font-bold text-slate-900">4. Cấu Hình Máy Nhận Dữ Liệu (Remote Server Endpoint)</h2>
+                            <p class="text-xs text-slate-500">Gửi tự động toàn bộ dữ liệu chỉ số & thực đơn tới Server của bạn sau khi tính toán</p>
+                        </div>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div>
+                            <label for="server-url" class="block text-sm font-semibold text-slate-700 mb-2">URL Endpoint tiếp nhận (HTTP POST):</label>
+                            <div class="flex gap-2">
+                                <input type="text" id="server-url" value="/api/receive-nutrition-data" required
+                                       class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition text-slate-900 font-mono text-xs sm:text-sm bg-white">
+                                <button type="button" onclick="openServerCodeModal()" class="px-4 py-2 bg-indigo-100 hover:bg-indigo-200 text-indigo-800 border border-indigo-300 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0">
+                                    <i data-lucide="code" class="w-4 h-4"></i> Mã Server Mẫu
+                                </button>
+                            </div>
+                            <span class="text-[11px] text-slate-500 mt-1.5 block">
+                                💡 Nhập IP máy chủ Node.js/Python trong mạng LAN hoặc Domain Endpoint public của bạn.
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <div class="text-center pt-2">
+                    <button type="submit" class="w-full sm:w-auto px-10 py-4 bg-gradient-to-r from-brand-600 to-mint-600 hover:from-brand-700 hover:to-mint-700 text-white font-extrabold rounded-2xl shadow-lg shadow-brand-500/30 hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3 text-base mx-auto">
+                        <i data-lucide="sparkles" class="w-5 h-5"></i>
+                        Phân Tích Ngay & Chuyển Sang Báo Cáo
+                    </button>
+                </div>
+            </form>
+        </section>
+
+
+        <!-- SCREEN 2: RESULTS, RECOMMENDATIONS & REMOTE DISPATCH -->
+        <section id="screen-results" class="hidden transition-all duration-500 ease-in-out">
+            
+            <!-- Actions Bar Top -->
+            <div class="no-print flex flex-wrap items-center justify-between gap-4 mb-6 bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
+                <button onclick="goToStep(1)" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-sm rounded-xl transition flex items-center gap-2">
+                    <i data-lucide="arrow-left" class="w-4 h-4"></i> Nhập Lại Chỉ Số
+                </button>
+                
+                <div class="flex flex-wrap items-center gap-2.5">
+                    <button onclick="openPayloadModal()" class="px-4 py-2.5 bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs sm:text-sm rounded-xl transition flex items-center gap-2 shadow-xs">
+                        <i data-lucide="file-json" class="w-4 h-4 text-emerald-400"></i> Xem Trước JSON
+                    </button>
+
+                    <button onclick="triggerSendToRemoteServer()" id="btn-send-remote" class="px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md transition flex items-center gap-2">
+                        <i data-lucide="send" class="w-4 h-4"></i> Gửi Ngay Sang Server
+                    </button>
+
+                    <button onclick="window.print()" class="px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs sm:text-sm rounded-xl shadow-xs transition flex items-center gap-2">
+                        <i data-lucide="printer" class="w-4 h-4"></i> In Báo Cáo (PDF)
+                    </button>
+                </div>
+            </div>
+
+            <!-- Server Send Status Banner -->
+            <div id="dispatch-status-banner" class="hidden mb-6 p-4 rounded-2xl border transition-all no-print"></div>
+
+            <!-- Print Header -->
+            <div class="hidden print:block text-center border-b pb-4 mb-6">
+                <h1 class="text-2xl font-black text-brand-700">SMARTNUTRI - BÁO CÁO DINH DƯỠNG & KHUYẾN NGHỊ THỰC ĐƠN</h1>
+                <p class="text-xs text-slate-500">Thời gian tạo: <span id="print-date"></span></p>
+            </div>
+
+            <div class="space-y-8">
+                
+                <!-- 1. Chỉ số cơ thể & Visual BMI Gauge -->
+                <div class="glass-card rounded-2xl p-6 sm:p-8 shadow-xs print-full-width">
+                    <h2 class="text-xl font-extrabold text-slate-900 mb-6 flex items-center gap-2">
+                        <i data-lucide="activity" class="w-6 h-6 text-brand-600"></i>
+                        1. Phân Tích Chỉ Số Thể Trạng & Calo Chi Tiết
+                    </h2>
+
+                    <!-- BMI Gauge Meter Bar -->
+                    <div class="mb-8 p-5 bg-slate-50 rounded-2xl border border-slate-200">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-xs font-bold text-slate-700">Thước Đo Chỉ Số Khối Cơ Thể (BMI Gauge)</span>
+                            <span id="gauge-bmi-badge" class="text-xs font-extrabold px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">BMI: --</span>
+                        </div>
+
+                        <!-- Progress Bar Container -->
+                        <div class="relative h-6 w-full rounded-full bg-slate-200 overflow-hidden flex shadow-inner">
+                            <div class="h-full bg-amber-400 w-[20%]" title="Thiếu cân (< 18.5)"></div>
+                            <div class="h-full bg-emerald-500 w-[30%]" title="Bình thường (18.5 - 22.9)"></div>
+                            <div class="h-full bg-orange-400 w-[20%]" title="Tiền thừa cân (23.0 - 24.9)"></div>
+                            <div class="h-full bg-rose-500 w-[30%]" title="Béo phì (>= 25.0)"></div>
+                            
+                            <!-- Pointer Marker -->
+                            <div id="bmi-gauge-pointer" class="bmi-marker absolute top-0 bottom-0 w-2.5 bg-slate-900 shadow-md border-2 border-white rounded-full translate-x-[-50%]" style="left: 0%;"></div>
+                        </div>
+
+                        <div class="flex justify-between text-[11px] font-semibold text-slate-500 mt-2 px-1">
+                            <span class="text-amber-700">Thiếu Cân (&lt;18.5)</span>
+                            <span class="text-emerald-700">Chuẩn (18.5-22.9)</span>
+                            <span class="text-orange-700">Thừa Cân (23-24.9)</span>
+                            <span class="text-rose-700">Béo Phì (&ge;25)</span>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <!-- BMI Box -->
+                        <div class="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs">
+                            <span class="text-xs font-semibold text-slate-500 block mb-1">Chỉ số BMI</span>
+                            <div class="flex items-baseline gap-2">
+                                <span id="res-bmi-val" class="text-3xl font-black text-slate-900">22.0</span>
+                                <span id="res-bmi-tag" class="text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">Chuẩn</span>
+                            </div>
+                            <p id="res-bmi-desc" class="text-xs text-slate-500 mt-2">Cân nặng cân đối phù hợp.</p>
+                        </div>
+
+                        <!-- BMR Box -->
+                        <div class="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs">
+                            <span class="text-xs font-semibold text-slate-500 block mb-1">Trao đổi chất cơ bản (BMR)</span>
+                            <div class="flex items-baseline gap-1">
+                                <span id="res-bmr-val" class="text-3xl font-black text-slate-900">1,500</span>
+                                <span class="text-xs text-slate-500 font-medium">kcal/ngày</span>
+                            </div>
+                            <p class="text-xs text-slate-500 mt-2">Năng lượng tối thiểu維持 cơ thể nghỉ ngơi.</p>
+                        </div>
+
+                        <!-- TDEE Box -->
+                        <div class="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs">
+                            <span class="text-xs font-semibold text-slate-500 block mb-1">Tiêu hao sinh hoạt (TDEE)</span>
+                            <div class="flex items-baseline gap-1">
+                                <span id="res-tdee-val" class="text-3xl font-black text-slate-900">2,000</span>
+                                <span class="text-xs text-slate-500 font-medium">kcal/ngày</span>
+                            </div>
+                            <p class="text-xs text-slate-500 mt-2">Calo tiêu tốn thực tế bao gồm vận động.</p>
+                        </div>
+
+                        <!-- Target Calorie Box -->
+                        <div class="p-5 rounded-2xl bg-gradient-to-br from-brand-600 to-mint-600 text-white shadow-lg shadow-brand-500/20 active-pulse">
+                            <span class="text-xs font-semibold text-brand-100 block mb-1">CALO KHUYẾN NGHỊ HÀNG NGÀY</span>
+                            <div class="flex items-baseline gap-1">
+                                <span id="res-target-calorie" class="text-3xl font-black">1,800</span>
+                                <span class="text-xs font-medium text-brand-100">kcal/ngày</span>
+                            </div>
+                            <p id="res-goal-text" class="text-xs text-brand-100 mt-2 font-medium">Mức nạp tối ưu cho mục tiêu đã chọn.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. Biểu đồ Macro & Chi tiết chất -->
+                <div class="glass-card rounded-2xl p-6 sm:p-8 shadow-xs print-full-width">
+                    <h2 class="text-xl font-extrabold text-slate-900 mb-2 flex items-center gap-2">
+                        <i data-lucide="pie-chart" class="w-6 h-6 text-mint-600"></i>
+                        2. Phân Bổ Năng Lượng Macro Dinh Dưỡng
+                    </h2>
+                    <p class="text-xs text-slate-500 mb-6">Định lượng chi tiết grams Đạm, Tinh Bột và Chất Béo khuyên dùng</p>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+                        <div class="lg:col-span-5 flex justify-center items-center relative max-w-xs mx-auto">
+                            <canvas id="macroChart" width="220" height="220"></canvas>
+                        </div>
+
+                        <div class="lg:col-span-7 grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <div class="p-4 rounded-xl border border-rose-200 bg-rose-50/50">
+                                <div class="flex items-center gap-2 text-rose-700 font-bold mb-1">
+                                    <i data-lucide="beef" class="w-4 h-4"></i> Chất Đạm (Protein)
+                                </div>
+                                <div class="text-2xl font-black text-slate-900" id="res-protein-g">135g</div>
+                                <div class="text-xs text-slate-500 font-bold" id="res-protein-pct">30% calo</div>
+                                <p class="text-xs text-slate-600 mt-2">Ức gà, thịt bò nạc, cá, trứng, đậu phụ.</p>
+                            </div>
+
+                            <div class="p-4 rounded-xl border border-amber-200 bg-amber-50/50">
+                                <div class="flex items-center gap-2 text-amber-700 font-bold mb-1">
+                                    <i data-lucide="wheat" class="w-4 h-4"></i> Tinh Bột (Carbs)
+                                </div>
+                                <div class="text-2xl font-black text-slate-900" id="res-carbs-g">200g</div>
+                                <div class="text-xs text-slate-500 font-bold" id="res-carbs-pct">45% calo</div>
+                                <p class="text-xs text-slate-600 mt-2">Gạo lứt, khoai lang, yến mạch, yến mạch.</p>
+                            </div>
+
+                            <div class="p-4 rounded-xl border border-emerald-200 bg-emerald-50/50">
+                                <div class="flex items-center gap-2 text-emerald-700 font-bold mb-1">
+                                    <i data-lucide="droplet" class="w-4 h-4"></i> Chất Béo Tốt (Fat)
+                                </div>
+                                <div class="text-2xl font-black text-slate-900" id="res-fat-g">50g</div>
+                                <div class="text-xs text-slate-500 font-bold" id="res-fat-pct">25% calo</div>
+                                <p class="text-xs text-slate-600 mt-2">Dầu olive, quả bơ, hạt hạnh nhân, cá hồi.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. Thực Đơn Mẫu Tương Tác 7 Ngày (Mon - Sun) -->
+                <div class="glass-card rounded-2xl p-6 sm:p-8 shadow-xs print-full-width">
+                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                        <div>
+                            <h2 class="text-xl font-extrabold text-slate-900 flex items-center gap-2">
+                                <i data-lucide="calendar" class="w-6 h-6 text-brand-600"></i>
+                                3. Thực Đơn Dinh Dưỡng Tương Tác 7 Ngày Trong Tuần
+                            </h2>
+                            <p class="text-xs text-slate-500">Chuyển đổi các ngày trong tuần để xem gợi ý món ăn đa dạng</p>
+                        </div>
+                        
+                        <!-- Day Selection Tabs -->
+                        <div class="flex items-center gap-1 overflow-x-auto custom-scrollbar pb-2 md:pb-0 bg-slate-100 p-1.5 rounded-xl" id="weekly-tabs-container">
+                            <!-- Injected by JS -->
+                        </div>
+                    </div>
+
+                    <!-- Selected Day Meal Grid -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="meal-plan-container"></div>
+                </div>
+
+                <!-- 4. Danh Sách Thực Phẩm Đi Chợ Hàng Tuần (Grocery List) -->
+                <div class="glass-card rounded-2xl p-6 sm:p-8 shadow-xs print-full-width">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 pb-4 border-b border-slate-100">
+                        <div>
+                            <h2 class="text-xl font-extrabold text-slate-900 flex items-center gap-2">
+                                <i data-lucide="shopping-cart" class="w-6 h-6 text-indigo-600"></i>
+                                4. Danh Sách Nguyên Liệu Đi Chợ Chuẩn Bị
+                            </h2>
+                            <p class="text-xs text-slate-500">Được tính toán dựa trên mức năng lượng calo mục tiêu của bạn</p>
+                        </div>
+                        <span class="text-xs bg-indigo-100 text-indigo-800 font-bold px-3 py-1 rounded-full self-start sm:self-auto">Tích chọn khi hoàn tất mua</span>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" id="grocery-list-container"></div>
+                </div>
+
+                <!-- 5. Lịch Uống Nước & Tính Calo Tập Luyện -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    
+                    <!-- Lịch uống nước -->
+                    <div class="glass-card rounded-2xl p-6 sm:p-8 shadow-xs">
+                        <div class="flex items-center gap-3 mb-4">
+                            <div class="p-2.5 bg-blue-100 text-blue-700 rounded-xl">
+                                <i data-lucide="glass-water" class="w-5 h-5"></i>
+                            </div>
+                            <div>
+                                <h2 class="text-lg font-bold text-slate-900">Lịch Uống Nước Nhắc Nhở</h2>
+                                <p class="text-xs text-slate-500">Mục tiêu: <span id="water-target-num" class="font-bold text-blue-600">2.2 Liters/ngày</span></p>
+                            </div>
+                        </div>
+
+                        <div class="space-y-2.5" id="hydration-schedule-container"></div>
+                    </div>
+
+                    <!-- Công cụ tính tiêu hao calo thể thao -->
+                    <div class="glass-card rounded-2xl p-6 sm:p-8 shadow-xs">
+                        <div class="flex items-center gap-3 mb-4">
+                            <div class="p-2.5 bg-amber-100 text-amber-700 rounded-xl">
+                                <i data-lucide="flame" class="w-5 h-5"></i>
+                            </div>
+                            <div>
+                                <h2 class="text-lg font-bold text-slate-900">Tính Calo Tiêu Hao Thể Thao</h2>
+                                <p class="text-xs text-slate-500">Ước tính calo đốt cháy khi vận động bổ sung</p>
+                            </div>
+                        </div>
+
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 mb-1">Môn thể thao / Hoạt động:</label>
+                                <select id="workout-type" onchange="calculateExerciseCalories()" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-bold focus:ring-2 focus:ring-brand-500 outline-none">
+                                    <option value="6">Chạy bộ tốc độ trung bình (8km/h)</option>
+                                    <option value="4">Đạp xe thư giãn</option>
+                                    <option value="5">Tập Gym / Kháng lực</option>
+                                    <option value="7">Bơi lội</option>
+                                    <option value="6">Chơi Cầu lông / Tennis</option>
+                                    <option value="3">Tập Yoga / Stretching</option>
+                                    <option value="3.5">Đi bộ nhanh</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 mb-1">Thời gian tập (Phút):</label>
+                                <input type="number" id="workout-duration" value="45" min="10" max="180" oninput="calculateExerciseCalories()"
+                                       class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-bold focus:ring-2 focus:ring-brand-500 outline-none">
+                            </div>
+
+                            <div class="p-4 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-between">
+                                <span class="text-xs font-bold text-amber-900">Ước tính Calo tiêu tốn:</span>
+                                <span id="exercise-burned-cal" class="text-2xl font-black text-amber-600">0 kcal</span>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- 6. Đánh giá thói quen -->
+                <div class="glass-card rounded-2xl p-6 sm:p-8 shadow-xs print-full-width">
+                    <h2 class="text-xl font-extrabold text-slate-900 mb-2 flex items-center gap-2">
+                        <i data-lucide="alert-circle" class="w-6 h-6 text-amber-600"></i>
+                        6. Khắc Phục Thói Quen Ăn Uống
+                    </h2>
+                    <p class="text-xs text-slate-500 mb-6">Giải pháp chi tiết cho các nguy cơ sinh hoạt đã chọn</p>
+
+                    <div id="habits-analysis-container" class="space-y-4"></div>
+                </div>
+
+            </div>
+
+            <div class="no-print flex flex-wrap justify-center gap-4 my-10">
+                <button onclick="goToStep(1)" class="px-8 py-3.5 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold rounded-xl transition flex items-center gap-2">
+                    <i data-lucide="refresh-cw" class="w-4 h-4"></i> Nhập Lại Thông Tin
+                </button>
+                <button onclick="triggerSendToRemoteServer()" class="px-8 py-3.5 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-500/20 transition flex items-center gap-2">
+                    <i data-lucide="send" class="w-4 h-4"></i> Gửi Dữ Liệu Ngay
+                </button>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- MODAL 1: PAYLOAD INSPECTOR -->
+    <div id="payload-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs hidden p-4 no-print">
+        <div class="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl relative max-h-[90vh] flex flex-col">
+            <button onclick="closePayloadModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 p-2 rounded-lg">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+
+            <div class="flex items-center gap-3 mb-4">
+                <div class="p-2.5 bg-emerald-100 text-emerald-700 rounded-xl">
+                    <i data-lucide="file-json" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-slate-900">JSON Payload Sẵn Sàng Truyền Đi</h3>
+                    <p class="text-xs text-slate-500">Cấu trúc dữ liệu REST API sẽ được gửi tới Server</p>
+                </div>
+            </div>
+
+            <div class="overflow-y-auto custom-scrollbar flex-grow bg-slate-900 text-emerald-400 p-4 rounded-xl font-mono text-xs relative">
+                <pre id="payload-json-view" class="whitespace-pre-wrap"></pre>
+            </div>
+
+            <div class="mt-4 flex justify-between items-center">
+                <span class="text-xs text-slate-500">Format Standard: JSON HTTP POST</span>
+                <button onclick="copyPayloadJSON()" class="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5">
+                    <i data-lucide="copy" class="w-4 h-4"></i> Copy JSON
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 2: RECEIVER SERVER BACKEND CODE -->
+    <div id="server-code-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs hidden p-4 no-print">
+        <div class="bg-white rounded-2xl max-w-3xl w-full p-6 sm:p-8 shadow-2xl relative max-h-[90vh] flex flex-col">
+            <button onclick="closeServerCodeModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 p-2 rounded-lg">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+
+            <div class="flex items-center gap-3 mb-4">
+                <div class="p-2.5 bg-indigo-100 text-indigo-700 rounded-xl">
+                    <i data-lucide="terminal" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-slate-900">Mã Nguồn Server Lắng Nghe Trên Máy Nhận</h3>
+                    <p class="text-xs text-slate-500">Chạy đoạn code này trên máy tính / VPS để tạo API endpoint tiếp nhận</p>
+                </div>
+            </div>
+
+            <div class="flex border-b border-slate-200 mb-4 gap-4">
+                <button onclick="switchCodeTab('nodejs')" id="tab-btn-nodejs" class="pb-2 text-sm font-bold border-b-2 border-indigo-600 text-indigo-600">
+                    Node.js (Express)
+                </button>
+                <button onclick="switchCodeTab('python')" id="tab-btn-python" class="pb-2 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800">
+                    Python (Flask)
+                </button>
+            </div>
+
+            <div class="overflow-y-auto custom-scrollbar flex-grow bg-slate-900 text-slate-100 p-4 rounded-xl font-mono text-xs relative">
+                <!-- Node.js Code snippet -->
+                <pre id="code-snippet-nodejs" class="whitespace-pre-wrap">const express = require('express');
+const cors = require('cors');
+
+const app = express();
+const PORT = 3000;
+
+// Cho phép truyền dữ liệu CORS chéo tên miền
+app.use(cors());
+app.use(express.json());
+
+// Endpoint tiếp nhận dữ liệu tư vấn dinh dưỡng
+app.post('/api/receive-nutrition-data', (req, res) => {
+    const payload = req.body;
+    
+    console.log('=== [SERVER MÁY NHẬN] ĐÃ NHẬN DỮ LIỆU ===');
+    console.log('Thời gian:', payload.clientTimestamp);
+    console.log('Thông tin người dùng:', payload.userData);
+    console.log('Chỉ số tính toán:', payload.calculatedMetrics);
+    console.log('Macros (Gram):', payload.macros);
+
+    res.status(200).json({
+        status: 'success',
+        message: 'Server máy nhận đã xử lý và lưu dữ liệu thành công!',
+        receivedAt: new Date().toISOString()
+    });
+});
+
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server đang lắng nghe tại: http://localhost:${PORT}`);
+});</pre>
+
+                <!-- Python Code snippet -->
+                <pre id="code-snippet-python" class="hidden whitespace-pre-wrap">from flask import Flask, request, jsonify
+from flask_cors import CORS
+from datetime import datetime
+
+app = Flask(__name__)
+CORS(app)
+
+@app.route('/api/receive-nutrition-data', methods=['POST'])
+def receive_nutrition_data():
+    data = request.get_json()
+    
+    print("=== [SERVER PYTHON] DỮ LIỆU ĐÃ TỚI ===")
+    print("User Data:", data.get('userData'))
+    print("Metrics:", data.get('calculatedMetrics'))
+    
+    return jsonify({
+        "status": "success",
+        "message": "Python Server đã nhận kết quả thành công!",
+        "receivedAt": datetime.now().isoformat()
+    }), 200
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=3000)</pre>
+            </div>
+
+            <div class="mt-4 flex justify-between items-center">
+                <span class="text-xs text-slate-500">Cài đặt gói hỗ trợ: <code class="bg-slate-100 px-1 py-0.5 rounded text-indigo-600 font-bold">cors</code> / <code class="bg-slate-100 px-1 py-0.5 rounded text-indigo-600 font-bold">flask-cors</code></span>
+                <button onclick="copyServerCode()" class="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5">
+                    <i data-lucide="copy" class="w-4 h-4"></i> Copy Mã Nguồn
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 py-6 text-center text-xs text-slate-500 no-print">
+        <div class="max-w-6xl mx-auto px-4">
+            <p class="font-semibold text-slate-600">© 2026 SmartNutri - Trợ Lý Dinh Dưỡng & Truyền Dữ Liệu Server Từ Xa</p>
+        </div>
+    </footer>
+
+
+    <script>
+        let macroChartInstance = null;
+        let globalCurrentPayload = null;
+        let selectedDayIndex = 0;
+
+        const WEEKDAYS = [
+            { name: 'Thứ 2', key: 'mon' },
+            { name: 'Thứ 3', key: 'tue' },
+            { name: 'Thứ 4', key: 'wed' },
+            { name: 'Thứ 5', key: 'thu' },
+            { name: 'Thứ 6', key: 'fri' },
+            { name: 'Thứ 7', key: 'sat' },
+            { name: 'Chủ Nhật', key: 'sun' }
+        ];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            document.getElementById('print-date').textContent = new Date().toLocaleDateString('vi-VN');
+        });
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            let bgClass = 'bg-slate-800 text-white';
+            if (type === 'success') bgClass = 'bg-emerald-600 text-white';
+            if (type === 'error') bgClass = 'bg-rose-600 text-white';
+
+            toast.className = `${bgClass} text-xs font-bold px-4 py-3 rounded-xl shadow-xl transition-all duration-300 transform translate-y-2 opacity-0 flex items-center gap-2 pointer-events-auto`;
+            toast.innerHTML = `<i data-lucide="info" class="w-4 h-4"></i> ${message}`;
+            
+            container.appendChild(toast);
+            lucide.createIcons();
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            }, 10);
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-[-10px]');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        function updateGenderUI() {
+            const isMale = document.querySelector('input[name="gender"]:checked').value === 'male';
+            const maleLabel = document.getElementById('gender-male-label');
+            const femaleLabel = document.getElementById('gender-female-label');
+
+            if (isMale) {
+                maleLabel.className = 'relative flex items-center justify-center p-3 border-2 rounded-xl cursor-pointer transition-all border-brand-500 bg-brand-50/50 text-brand-800 font-medium text-sm hover:border-brand-400';
+                femaleLabel.className = 'relative flex items-center justify-center p-3 border-2 rounded-xl cursor-pointer transition-all border-slate-200 bg-white text-slate-600 font-medium text-sm hover:border-slate-300';
+            } else {
+                femaleLabel.className = 'relative flex items-center justify-center p-3 border-2 rounded-xl cursor-pointer transition-all border-pink-500 bg-pink-50/50 text-pink-800 font-medium text-sm hover:border-pink-400';
+                maleLabel.className = 'relative flex items-center justify-center p-3 border-2 rounded-xl cursor-pointer transition-all border-slate-200 bg-white text-slate-600 font-medium text-sm hover:border-slate-300';
+            }
+        }
+
+        function goToStep(step) {
+            const screenForm = document.getElementById('screen-form');
+            const screenResults = document.getElementById('screen-results');
+            const badge1 = document.getElementById('step-badge-1');
+            const badge2 = document.getElementById('step-badge-2');
+
+            if (step === 1) {
+                screenForm.classList.remove('hidden');
+                screenResults.classList.add('hidden');
+                
+                badge1.className = 'flex items-center gap-2 px-3 py-1.5 rounded-full bg-brand-100 text-brand-800 transition-all cursor-pointer';
+                badge2.className = 'flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100 text-slate-400 transition-all cursor-pointer';
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            } else {
+                if (!globalCurrentPayload) {
+                    showToast('Vui lòng hoàn tất nhập chỉ số trước!', 'error');
+                    return;
+                }
+                screenForm.classList.add('hidden');
+                screenResults.classList.remove('hidden');
+
+                badge1.className = 'flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100 text-slate-400 transition-all cursor-pointer';
+                badge2.className = 'flex items-center gap-2 px-3 py-1.5 rounded-full bg-brand-100 text-brand-800 transition-all cursor-pointer';
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }
+
+        function handleFormSubmit(e) {
+            e.preventDefault();
+
+            const gender = document.querySelector('input[name="gender"]:checked').value;
+            const age = parseFloat(document.getElementById('age').value) || 25;
+            const height = parseFloat(document.getElementById('height').value) || 168;
+            const weight = parseFloat(document.getElementById('weight').value) || 62;
+            const activity = parseFloat(document.querySelector('input[name="activity"]:checked').value) || 1.2;
+            const goal = document.querySelector('input[name="goal"]:checked').value;
+            const serverUrl = document.getElementById('server-url').value.trim();
+
+            const habitCheckboxes = document.querySelectorAll('input[name="habit"]:checked');
+            const habits = Array.from(habitCheckboxes).map(cb => cb.value);
+
+            // 1. BMI Calculation & Gauge Positioning
+            const heightM = height / 100;
+            const bmi = weight / (heightM * heightM);
+            let bmiCategory = '';
+            let bmiBadgeClass = '';
+            let bmiDesc = '';
+            let gaugePercent = 0; // % position on meter bar
+
+            if (bmi < 18.5) {
+                bmiCategory = 'Thiếu Cân';
+                bmiBadgeClass = 'bg-amber-100 text-amber-800';
+                bmiDesc = 'Nên tăng khẩu phần dinh dưỡng năng lượng.';
+                gaugePercent = Math.min(19, (bmi / 18.5) * 20);
+            } else if (bmi >= 18.5 && bmi <= 22.9) {
+                bmiCategory = 'Cân Đối Chuẩn';
+                bmiBadgeClass = 'bg-emerald-100 text-emerald-800';
+                bmiDesc = 'Thể trạng đạt chỉ số cân đối hoàn hảo!';
+                gaugePercent = 20 + (((bmi - 18.5) / 4.4) * 30);
+            } else if (bmi >= 23 && bmi <= 24.9) {
+                bmiCategory = 'Tiền Thừa Cân';
+                bmiBadgeClass = 'bg-orange-100 text-orange-800';
+                bmiDesc = 'Nên chú ý kiểm soát lượng tinh bột & mỡ.';
+                gaugePercent = 50 + (((bmi - 23) / 1.9) * 20);
+            } else {
+                bmiCategory = 'Béo Phì';
+                bmiBadgeClass = 'bg-rose-100 text-rose-800';
+                bmiDesc = 'Khuyến nghị tăng cường tập luyện & giảm calo.';
+                gaugePercent = Math.min(98, 70 + (((bmi - 25) / 10) * 30));
+            }
+
+            // Update Gauge Meter
+            document.getElementById('bmi-gauge-pointer').style.left = `${gaugePercent.toFixed(1)}%`;
+            document.getElementById('gauge-bmi-badge').textContent = `BMI: ${bmi.toFixed(1)} - ${bmiCategory}`;
+            document.getElementById('gauge-bmi-badge').className = `text-xs font-extrabold px-3 py-1 rounded-full ${bmiBadgeClass}`;
+
+            // 2. BMR (Mifflin-St Jeor)
+            let bmr = (gender === 'male') 
+                ? (10 * weight) + (6.25 * height) - (5 * age) + 5
+                : (10 * weight) + (6.25 * height) - (5 * age) - 161;
+
+            // 3. TDEE
+            const tdee = bmr * activity;
+
+            // 4. Target Calorie & Macro Ratios
+            let targetCalorie = tdee;
+            let goalText = '';
+            let proteinPct = 0.30;
+            let carbsPct = 0.45;
+            let fatPct = 0.25;
+
+            if (goal === 'lose') {
+                targetCalorie = Math.max(1200, tdee - 500);
+                goalText = 'Thâm hụt 500 kcal/ngày giúp đốt mỡ an toàn.';
+                proteinPct = 0.35; carbsPct = 0.40; fatPct = 0.25;
+            } else if (goal === 'maintain') {
+                targetCalorie = tdee;
+                goalText = 'Duy trì thể trạng & nâng cao sức bền.';
+                proteinPct = 0.25; carbsPct = 0.50; fatPct = 0.25;
+            } else if (goal === 'gain') {
+                targetCalorie = tdee + 400;
+                goalText = 'Bổ sung 400 kcal/ngày hỗ trợ tăng cân.';
+                proteinPct = 0.20; carbsPct = 0.55; fatPct = 0.25;
+            } else if (goal === 'muscle') {
+                targetCalorie = tdee + 300;
+                goalText = 'Đạm cao thúc đẩy tái tạo & phát triển cơ bắp.';
+                proteinPct = 0.35; carbsPct = 0.45; fatPct = 0.20;
+            }
+
+            const proteinGrams = Math.round((targetCalorie * proteinPct) / 4);
+            const carbsGrams = Math.round((targetCalorie * carbsPct) / 4);
+            const fatGrams = Math.round((targetCalorie * fatPct) / 9);
+            const recommendedWater = ((weight * 35) / 1000).toFixed(1);
+
+            // Populate DOM
+            document.getElementById('res-bmi-val').textContent = bmi.toFixed(1);
+            document.getElementById('res-bmi-tag').textContent = bmiCategory;
+            document.getElementById('res-bmi-tag').className = `text-xs font-bold px-2.5 py-1 rounded-full ${bmiBadgeClass}`;
+            document.getElementById('res-bmi-desc').textContent = bmiDesc;
+
+            document.getElementById('res-bmr-val').textContent = Math.round(bmr).toLocaleString('vi-VN');
+            document.getElementById('res-tdee-val').textContent = Math.round(tdee).toLocaleString('vi-VN');
+            document.getElementById('res-target-calorie').textContent = Math.round(targetCalorie).toLocaleString('vi-VN');
+            document.getElementById('res-goal-text').textContent = goalText;
+
+            document.getElementById('res-protein-g').textContent = `${proteinGrams}g`;
+            document.getElementById('res-protein-pct').textContent = `${Math.round(proteinPct * 100)}% calo`;
+
+            document.getElementById('res-carbs-g').textContent = `${carbsGrams}g`;
+            document.getElementById('res-carbs-pct').textContent = `${Math.round(carbsPct * 100)}% calo`;
+
+            document.getElementById('res-fat-g').textContent = `${fatGrams}g`;
+            document.getElementById('res-fat-pct').textContent = `${Math.round(fatPct * 100)}% calo`;
+
+            document.getElementById('water-target-num').textContent = `${recommendedWater} Liters / ngày`;
+
+            // Prepare Payload Object
+            globalCurrentPayload = {
+                clientTimestamp: new Date().toISOString(),
+                serverTargetUrl: serverUrl,
+                userData: {
+                    gender, age, heightCm: height, weightKg: weight,
+                    activityFactor: activity, goal, habits
+                },
+                calculatedMetrics: {
+                    bmi: parseFloat(bmi.toFixed(1)),
+                    bmiCategory,
+                    bmrKcal: Math.round(bmr),
+                    tdeeKcal: Math.round(tdee),
+                    targetCalorieKcal: Math.round(targetCalorie),
+                    waterLiters: parseFloat(recommendedWater)
+                },
+                macros: {
+                    proteinGrams,
+                    carbsGrams,
+                    fatGrams
+                }
+            };
+
+            // Render Chart, 7-Day Plan, Grocery List, Hydration, Habits
+            renderMacroChart(proteinGrams, carbsGrams, fatGrams);
+            renderHabitsAnalysis(habits);
+            renderWeeklyTabs();
+            renderMealPlanForDay(0, targetCalorie);
+            renderGroceryList();
+            renderHydrationSchedule(recommendedWater);
+            calculateExerciseCalories();
+
+            // Reset banner status
+            document.getElementById('dispatch-status-banner').className = 'hidden mb-6 p-4 rounded-2xl border transition-all no-print';
+
+            showToast('Tính toán chỉ số thành công!', 'success');
+            goToStep(2);
+        }
+
+        function renderMacroChart(protein, carbs, fat) {
+            const ctx = document.getElementById('macroChart').getContext('2d');
+            
+            if (macroChartInstance) {
+                macroChartInstance.destroy();
+            }
+
+            macroChartInstance = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Đạm (Protein)', 'Tinh Bột (Carbs)', 'Chất Béo (Fat)'],
+                    datasets: [{
+                        data: [protein, carbs, fat],
+                        backgroundColor: ['#f43f5e', '#f59e0b', '#10b981'],
+                        hoverOffset: 8,
+                        borderWidth: 3,
+                        borderColor: '#ffffff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    cutout: '72%'
+                }
+            });
+        }
+
+        function renderWeeklyTabs() {
+            const container = document.getElementById('weekly-tabs-container');
+            container.innerHTML = '';
+
+            WEEKDAYS.forEach((day, index) => {
+                const btn = document.createElement('button');
+                btn.className = (index === selectedDayIndex)
+                    ? 'px-3.5 py-1.5 rounded-lg text-xs font-extrabold bg-brand-600 text-white shadow-xs transition shrink-0'
+                    : 'px-3.5 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:bg-white transition shrink-0';
+                btn.textContent = day.name;
+                btn.onclick = () => {
+                    selectedDayIndex = index;
+                    renderWeeklyTabs();
+                    const targetCal = globalCurrentPayload ? globalCurrentPayload.calculatedMetrics.targetCalorieKcal : 1800;
+                    renderMealPlanForDay(index, targetCal);
+                };
+                container.appendChild(btn);
+            });
+        }
+
+        function renderMealPlanForDay(dayIndex, targetCal) {
+            const container = document.getElementById('meal-plan-container');
+            container.innerHTML = '';
+
+            const cBreakfast = Math.round(targetCal * 0.25);
+            const cLunch = Math.round(targetCal * 0.35);
+            const cSnack = Math.round(targetCal * 0.10);
+            const cDinner = Math.round(targetCal * 0.30);
+
+            // Meal Database Variations for 7 Days
+            const weeklyMenuData = [
+                // Day 0: T2
+                [
+                    { name: 'Bữa Sáng (07:00)', cal: cBreakfast, icon: 'sun', dishes: ['1 Bát bún ức gà xé / Phở gà nạc', '1 Ly sữa hạt óc chó 250ml'] },
+                    { name: 'Bữa Trưa (12:00)', cal: cLunch, icon: 'utensils-crossed', dishes: ['1.5 Bát cơm gạo lứt', '150g ức gà áp chảo sốt tiêu', '1 Đĩa bông cải xanh luộc'] },
+                    { name: 'Bữa Phụ Chiều (15:30)', cal: cSnack, icon: 'coffee', dishes: ['1 Hũ sữa chua không đường', '1 Quả táo tây / 10 hạt hạnh nhân'] },
+                    { name: 'Bữa Tối (18:30)', cal: cDinner, icon: 'moon', dishes: ['1 Bát cơm gạo lứt nhỏ', '150g Tôm hấp sả', '1 Bát canh cải ngọc canh thịt băm'] }
+                ],
+                // Day 1: T3
+                [
+                    { name: 'Bữa Sáng (07:00)', cal: cBreakfast, icon: 'sun', dishes: ['2 Quả trứng luộc + 1 Bắp ngô ngọt', '1 Cốc cà phê đen không đường'] },
+                    { name: 'Bữa Trưa (12:00)', cal: cLunch, icon: 'utensils-crossed', dishes: ['1.5 Bát cơm lứt / Khoai lang', '160g Cá hồi áp chảo chanh dây', '1 Đĩa măng tây xào dầu olive'] },
+                    { name: 'Bữa Phụ Chiều (15:30)', cal: cSnack, icon: 'coffee', dishes: ['1 Sinh tố bơ chuối không đường', '1 Thìa hạt chia'] },
+                    { name: 'Bữa Tối (18:30)', cal: cDinner, icon: 'moon', dishes: ['1 Bát nhỏ khoai lang hấp', '150g Thịt thăn bò xào ớt đà lạt', '1 Bát canh bí đao luộc'] }
+                ],
+                // Day 2: T4
+                [
+                    { name: 'Bữa Sáng (07:00)', cal: cBreakfast, icon: 'sun', dishes: ['1 Bát yến mạch ngâm sữa tươi & quả mọng', '1 Quả chuối chín'] },
+                    { name: 'Bữa Trưa (12:00)', cal: cLunch, icon: 'utensils-crossed', dishes: ['1 Bát cơm gạo lứt', '150g Đậu phụ dồn thịt nạc hấp', '1 Đĩa rau muống luộc chấm xì dầu'] },
+                    { name: 'Bữa Phụ Chiều (15:30)', cal: cSnack, icon: 'coffee', dishes: ['200g Dưa hấu / Ổi tươi', '1 Hũ sữa chua hy lạp'] },
+                    { name: 'Bữa Tối (18:30)', cal: cDinner, icon: 'moon', dishes: ['1 Đĩa bún lứt trộn ức gà xé & rau mầm', '1 Bát canh hẹ nấu tofu'] }
+                ],
+                // Day 3: T5
+                [
+                    { name: 'Bữa Sáng (07:00)', cal: cBreakfast, icon: 'sun', dishes: ['2 Lát bánh mì đen + 2 Trứng ốp la', '1 Ly nước ép cần tây & ổi'] },
+                    { name: 'Bữa Trưa (12:00)', cal: cLunch, icon: 'utensils-crossed', dishes: ['1.5 Bát cơm lứt', '160g Đùi gà bỏ da nướng herb', '1 Đĩa xà lách trộn dấm bơ'] },
+                    { name: 'Bữa Phụ Chiều (15:30)', cal: cSnack, icon: 'coffee', dishes: ['1 Ly whey protein hoặc Sữa đậu nành', '1 Nắm hạt điều quay'] },
+                    { name: 'Bữa Tối (18:30)', cal: cDinner, icon: 'moon', dishes: ['1 Bát cháo yến mạch nấu thịt nạc băm', '1 Đĩa rau cải thìa hấp'] }
+                ],
+                // Day 4: T6
+                [
+                    { name: 'Bữa Sáng (07:00)', cal: cBreakfast, icon: 'sun', dishes: ['1 Bát hủ tiếu / Bún mộc nước trong', '1 Quả cam tươi'] },
+                    { name: 'Bữa Trưa (12:00)', cal: cLunch, icon: 'utensils-crossed', dishes: ['1.5 Củ khoai lang luộc', '150g Cá thu / Cá ngừ kho tộ ít gia vị', '1 Đĩa su su luộc'] },
+                    { name: 'Bữa Phụ Chiều (15:30)', cal: cSnack, icon: 'coffee', dishes: ['1 Quả ki-wi / Thanh long', '1 Hũ sữa chua không đường'] },
+                    { name: 'Bữa Tối (18:30)', cal: cDinner, icon: 'moon', dishes: ['1 Bát cơm gạo lứt', '150g Mực hấp gừng', '1 Bát canh mồng mồng nấu cua'] }
+                ],
+                // Day 5: T7
+                [
+                    { name: 'Bữa Sáng (07:00)', cal: cBreakfast, icon: 'sun', dishes: ['1 Bánh bao nguyên cám nhân mặn', '1 Ly sữa đậu đen hạt óc chó'] },
+                    { name: 'Bữa Trưa (12:00)', cal: cLunch, icon: 'utensils-crossed', dishes: ['1 Bát cơm gạo lứt', '160g Thịt thăn lợn áp chảo', '1 Đĩa bắp cải luộc'] },
+                    { name: 'Bữa Phụ Chiều (15:30)', cal: cSnack, icon: 'coffee', dishes: ['1 Bát nhỏ chè đậu đen ít đường', '1 Vốc hạt macca'] },
+                    { name: 'Bữa Tối (18:30)', cal: cDinner, icon: 'moon', dishes: ['1 Đĩa Salad ức gà nướng sốt chanh dây', '1 Bát sup bí đỏ hạt chia'] }
+                ],
+                // Day 6: CN
+                [
+                    { name: 'Bữa Sáng (07:00)', cal: cBreakfast, icon: 'sun', dishes: ['1 Đĩa pancake yến mạch mật ong', '1 Cốc sữa tươi không đường'] },
+                    { name: 'Bữa Trưa (12:00)', cal: cLunch, icon: 'utensils-crossed', dishes: ['1 Bát bún lứt xào thịt bò & giá đỗ', '1 Đĩa dưa chuột tươi'] },
+                    { name: 'Bữa Phụ Chiều (15:30)', cal: cSnack, icon: 'coffee', dishes: ['1 Quả bơ tươi dầm sữa tươi', '1 Nhúm hạt hạnh nhân'] },
+                    { name: 'Bữa Tối (18:30)', cal: cDinner, icon: 'moon', dishes: ['1 Bát nhỏ cơm lứt', '150g Cá bống / Cá lóc hấp', '1 Bát canh rau ngót thịt băm'] }
+                ]
+            ];
+
+            const currentMeals = weeklyMenuData[dayIndex];
+
+            currentMeals.forEach(m => {
+                const card = document.createElement('div');
+                card.className = 'p-5 rounded-2xl border border-slate-200 bg-white space-y-3 shadow-xs';
+                card.innerHTML = `
+                    <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="${m.icon}" class="w-4 h-4 text-brand-600"></i>
+                            <h3 class="font-bold text-slate-800 text-sm">${m.name}</h3>
+                        </div>
+                        <span class="text-xs font-bold px-2.5 py-1 rounded-full bg-slate-100 text-slate-700">~${m.cal} kcal</span>
+                    </div>
+                    <ul class="space-y-1.5 text-xs text-slate-600">
+                        ${m.dishes.map(d => `<li class="flex items-start gap-1.5"><i data-lucide="check" class="w-3.5 h-3.5 text-brand-500 shrink-0 mt-0.5"></i> ${d}</li>`).join('')}
+                    </ul>
+                `;
+                container.appendChild(card);
+            });
+            lucide.createIcons();
+        }
+
+        function renderGroceryList() {
+            const container = document.getElementById('grocery-list-container');
+            container.innerHTML = '';
+
+            const categories = [
+                {
+                    title: 'Nguồn Nạm & Đạm (Protein)',
+                    color: 'text-rose-700 bg-rose-50 border-rose-200',
+                    items: ['Ức gà nạc (1.2kg)', 'Thịt bò thăn (800g)', 'Cá hồi / Cá thu (700g)', 'Trứng gà ta (1-2 chục)', 'Tôm tươi & Mực (600g)']
+                },
+                {
+                    title: 'Tinh Bột Tốt (Complex Carbs)',
+                    color: 'text-amber-700 bg-amber-50 border-amber-200',
+                    items: ['Gạo lứt đỏ / Tím (2kg)', 'Khoai lang mật (1.5kg)', 'Yến mạch cán vỡ (1 kg)', 'Bánh mì đen nguyên cám', 'Bún lứt / Ngô ngọt']
+                },
+                {
+                    title: 'Rau Xanh & Bơ Hạt (Fibers & Fat)',
+                    color: 'text-emerald-700 bg-emerald-50 border-emerald-200',
+                    items: ['Bông cải xanh / Súp lơ', 'Măng tây & Ớt đà lạt', 'Rau cải thìa / Mồng tơi', 'Hạt hạnh nhân / Bơ tươi', 'Dầu olive nguyên chất']
+                }
+            ];
+
+            categories.forEach(cat => {
+                const card = document.createElement('div');
+                card.className = `p-4 rounded-xl border ${cat.color} space-y-3`;
+                card.innerHTML = `
+                    <h3 class="font-extrabold text-sm flex items-center gap-2">
+                        <i data-lucide="check-square" class="w-4 h-4"></i> ${cat.title}
+                    </h3>
+                    <div class="space-y-2">
+                        ${cat.items.map((item, i) => `
+                            <label class="flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer hover:text-slate-900">
+                                <input type="checkbox" class="rounded text-brand-600 focus:ring-brand-500 w-4 h-4">
+                                <span>${item}</span>
+                            </label>
+                        `).join('')}
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+            lucide.createIcons();
+        }
+
+        function renderHydrationSchedule(liters) {
+            const container = document.getElementById('hydration-schedule-container');
+            container.innerHTML = '';
+
+            const totalMl = parseFloat(liters) * 1000;
+            const glassMl = Math.round(totalMl / 7);
+
+            const schedule = [
+                { time: '07:00 Bắt đầu ngày', note: '1 Ly nước ấm vắt chanh mỏng giúp lọc ruột' },
+                { time: '09:00 Giữa buổi sáng', note: '1 Cốc nước tăng khả năng tập trung' },
+                { time: '11:30 Trước bữa trưa', note: '1 Cốc nước kích thích tiêu hóa' },
+                { time: '14:30 Buổi chiều làm việc', note: '1 Cốc nước xua tan mệt mỏi' },
+                { time: '16:30 Trước khi tập luyện', note: '1 Cốc nước duy trì điện giải' },
+                { time: '19:00 Trước bữa tối', note: '1 Cốc nước kiểm soát cảm giác đói' },
+                { time: '21:30 Trước khi ngủ', note: '1 Nhấp ngụm nhỏ chống cô đặc máu ban đêm' }
+            ];
+
+            schedule.forEach(s => {
+                const row = document.createElement('div');
+                row.className = 'p-3 rounded-xl border border-slate-100 bg-white flex items-center justify-between text-xs hover:border-blue-200 transition';
+                row.innerHTML = `
+                    <div class="flex items-center gap-2.5">
+                        <span class="font-extrabold text-blue-700 bg-blue-50 px-2 py-1 rounded-md shrink-0">${s.time}</span>
+                        <span class="text-slate-600 font-medium">${s.note}</span>
+                    </div>
+                    <span class="font-bold text-slate-900 bg-slate-100 px-2 py-0.5 rounded-md shrink-0">~${glassMl}ml</span>
+                `;
+                container.appendChild(row);
+            });
+        }
+
+        function calculateExerciseCalories() {
+            const met = parseFloat(document.getElementById('workout-type').value) || 5;
+            const duration = parseFloat(document.getElementById('workout-duration').value) || 45;
+            const weight = globalCurrentPayload ? globalCurrentPayload.userData.weightKg : 62;
+
+            // Calorie Formula = (MET * 3.5 * weightKg / 200) * durationMinutes
+            const burned = Math.round((met * 3.5 * weight / 200) * duration);
+            document.getElementById('exercise-burned-cal').textContent = `${burned} kcal`;
+        }
+
+        function renderHabitsAnalysis(habits) {
+            const container = document.getElementById('habits-analysis-container');
+            container.innerHTML = '';
+
+            const habitDict = {
+                'skip_breakfast': {
+                    title: 'Bỏ bữa sáng thường xuyên',
+                    harm: 'Sụt giảm đường huyết, hạ tốc độ BMR và dễ ăn bù quá đà buổi tối.',
+                    fix: 'Ăn sáng nhanh với yến mạch ngâm sữa hoặc 2 quả trứng luộc + chuối.'
+                },
+                'low_water': {
+                    title: 'Uống ít nước (< 1.5L/ngày)',
+                    harm: 'Gây mệt mỏi, táo bón và giảm tốc độ trao đổi chất.',
+                    fix: 'Đặt bình 1.5L tại bàn, nhấp từng ngụm nhỏ theo lịch nhắc nhở.'
+                },
+                'low_veggies': {
+                    title: 'Ít ăn rau xanh / trái cây',
+                    harm: 'Thiếu hụt chất xơ, vi sinh đường ruột suy giảm.',
+                    fix: 'Bổ sung tối thiểu 1 phần rau luộc hoặc xà lách vào mỗi bữa chính.'
+                },
+                'sweet_tooth': {
+                    title: 'Thích đồ ngọt / trà sữa',
+                    harm: 'Gây tăng vọt Insulin, tích mỡ nội tạng và nguy cơ tiểu đường.',
+                    fix: 'Giảm dần độ ngọt (30% đường), dùng trái cây tươi hoặc hạt khô thay thế.'
+                },
+                'late_snack': {
+                    title: 'Hay ăn đêm / thức khuya',
+                    harm: 'Gây trào ngược dạ dày, cản trở phục hồi cơ thể.',
+                    fix: 'Ăn tối trước 19:30. Đói đêm chỉ chọn 1 ly sữa ấm không đường.'
+                },
+                'fried_food': {
+                    title: 'Ăn nhiều đồ chiên xào dầu mỡ',
+                    harm: 'Tích tụ chất béo chuyển hóa (Trans-fat) gây tăng Cholesterol.',
+                    fix: 'Chuyển sang chế biến Hấp, Luộc hoặc dùng Nồi chiên không dầu.'
+                }
+            };
+
+            if (habits.length === 0) {
+                container.innerHTML = `
+                    <div class="p-4 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center gap-3">
+                        <i data-lucide="sparkles" class="w-6 h-6 text-emerald-600 shrink-0"></i>
+                        <div>
+                            <h4 class="font-bold text-emerald-900 text-sm">Rất Tốt!</h4>
+                            <p class="text-xs text-emerald-800">Bạn duy trì thói quen sinh hoạt lành mạnh, không chọn nguy cơ xấu nào.</p>
+                        </div>
+                    </div>
+                `;
+            } else {
+                habits.forEach(hKey => {
+                    const item = habitDict[hKey];
+                    if (item) {
+                        const card = document.createElement('div');
+                        card.className = 'p-4 rounded-xl border border-slate-200 bg-white space-y-1.5 shadow-xs';
+                        card.innerHTML = `
+                            <h3 class="font-bold text-rose-700 text-sm flex items-center gap-2">
+                                <i data-lucide="alert-triangle" class="w-4 h-4 text-rose-500"></i> ${item.title}
+                            </h3>
+                            <p class="text-xs text-slate-600"><strong>Tác hại:</strong> ${item.harm}</p>
+                            <p class="text-xs text-brand-800 bg-brand-50/70 p-2 rounded-lg border border-brand-100"><strong>Giải pháp:</strong> ${item.fix}</p>
+                        `;
+                        container.appendChild(card);
+                    }
+                });
+            }
+            lucide.createIcons();
+        }
+
+        async function triggerSendToRemoteServer(simulate = false) {
+            if (!globalCurrentPayload) {
+                showToast('Chưa có dữ liệu để gửi!', 'error');
+                return;
+            }
+
+            const targetUrl = globalCurrentPayload.serverTargetUrl;
+            const statusBanner = document.getElementById('dispatch-status-banner');
+            const btnSend = document.getElementById('btn-send-remote');
+
+            statusBanner.className = 'mb-6 p-4 rounded-2xl border bg-blue-50 border-blue-200 text-blue-900 block no-print';
+            statusBanner.innerHTML = `
+                <div class="flex items-center gap-3">
+                    <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-700"></div>
+                    <div>
+                        <h4 class="font-bold text-sm">${simulate ? 'Đang giả lập truyền dữ liệu sang Server...' : 'Đang gửi dữ liệu sang Endpoint Server...'}</h4>
+                        <p class="text-xs text-blue-700 font-mono mt-0.5">${targetUrl}</p>
+                    </div>
+                </div>
+            `;
+
+            btnSend.disabled = true;
+            btnSend.classList.add('opacity-50');
+
+            if (simulate) {
+                await new Promise(resolve => setTimeout(resolve, 800));
+                statusBanner.className = 'mb-6 p-4 rounded-2xl border bg-emerald-50 border-emerald-300 text-emerald-900 block no-print';
+                statusBanner.innerHTML = `
+                    <div class="flex items-start gap-3">
+                        <i data-lucide="check-circle" class="w-6 h-6 text-emerald-600 shrink-0 mt-0.5"></i>
+                        <div>
+                            <h4 class="font-bold text-sm text-emerald-900">Giả Lập Gửi Thành Công! (Demo Mode)</h4>
+                            <p class="text-xs text-emerald-800 mt-1">Gói dữ liệu JSON chỉ số & thực đơn đã được đóng gói truyền thành công tới: <code class="font-mono bg-emerald-100 px-1 rounded">${targetUrl}</code></p>
+                        </div>
+                    </div>
+                `;
+                btnSend.disabled = false;
+                btnSend.classList.remove('opacity-50');
+                lucide.createIcons();
+                showToast('Đã gửi giả lập thành công!', 'success');
+                return;
+            }
+
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 6000);
+
+                const response = await fetch(targetUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(globalCurrentPayload),
+                    signal: controller.signal
+                });
+
+                clearTimeout(timeoutId);
+
+                if (response.ok) {
+                    const resData = await response.json().catch(() => ({}));
+                    statusBanner.className = 'mb-6 p-4 rounded-2xl border bg-emerald-50 border-emerald-300 text-emerald-900 block no-print';
+                    statusBanner.innerHTML = `
+                        <div class="flex items-start gap-3">
+                            <i data-lucide="check-circle" class="w-6 h-6 text-emerald-600 shrink-0 mt-0.5"></i>
+                            <div>
+                                <h4 class="font-bold text-sm text-emerald-900">Gửi Thành Công Dữ Liệu Sang Server!</h4>
+                                <p class="text-xs text-emerald-800 mt-1">Máy chủ tại <code class="font-mono bg-emerald-100 px-1 rounded">${targetUrl}</code> đã nhận và lưu trữ báo cáo.</p>
+                                ${resData.message ? `<p class="text-xs font-semibold text-emerald-700 mt-1">Phản hồi từ Server: "${resData.message}"</p>` : ''}
+                            </div>
+                        </div>
+                    `;
+                    showToast('Đã đồng bộ sang Server thành công!', 'success');
+                } else {
+                    throw new Error(`HTTP Status Code: ${response.status}`);
+                }
+            } catch (err) {
+                statusBanner.className = 'mb-6 p-4 rounded-2xl border bg-rose-50 border-rose-300 text-rose-900 block no-print';
+                statusBanner.innerHTML = `
+                    <div class="flex items-start gap-3">
+                        <i data-lucide="x-circle" class="w-6 h-6 text-rose-600 shrink-0 mt-0.5"></i>
+                        <div>
+                            <h4 class="font-bold text-sm text-rose-900">Không Thể Kết Nối Tới Endpoint Server</h4>
+                            <p class="text-xs text-rose-800 mt-1">Không nhận được phản hồi từ URL <code class="font-mono bg-rose-100 px-1 rounded">${targetUrl}</code> (Do IP chưa đúng hoặc chưa bật Server backend).</p>
+                            <div class="mt-3 pt-2 border-t border-rose-200 flex flex-wrap gap-2 items-center">
+                                <button onclick="triggerSendToRemoteServer(true)" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition flex items-center gap-1.5">
+                                    <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> Thử nghiệm Giả Lập Thành Công
+                                </button>
+                                <button onclick="goToStep(1)" class="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-lg text-xs font-medium transition">
+                                    Đổi URL Server
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } finally {
+                btnSend.disabled = false;
+                btnSend.classList.remove('opacity-50');
+                lucide.createIcons();
+            }
+        }
+
+        function openPayloadModal() {
+            if (!globalCurrentPayload) return;
+            document.getElementById('payload-json-view').textContent = JSON.stringify(globalCurrentPayload, null, 2);
+            document.getElementById('payload-modal').classList.remove('hidden');
+        }
+
+        function closePayloadModal() {
+            document.getElementById('payload-modal').classList.add('hidden');
+        }
+
+        function copyPayloadJSON() {
+            const jsonText = document.getElementById('payload-json-view').textContent;
+            copyToClipboardText(jsonText);
+            showToast('Đã copy chuỗi JSON Payload!', 'success');
+        }
+
+        function openServerCodeModal() {
+            document.getElementById('server-code-modal').classList.remove('hidden');
+        }
+
+        function closeServerCodeModal() {
+            document.getElementById('server-code-modal').classList.add('hidden');
+        }
+
+        function switchCodeTab(tab) {
+            const nodejsSnippet = document.getElementById('code-snippet-nodejs');
+            const pythonSnippet = document.getElementById('code-snippet-python');
+            const btnNode = document.getElementById('tab-btn-nodejs');
+            const btnPy = document.getElementById('tab-btn-python');
+
+            if (tab === 'nodejs') {
+                nodejsSnippet.classList.remove('hidden');
+                pythonSnippet.classList.add('hidden');
+                btnNode.className = 'pb-2 text-sm font-bold border-b-2 border-indigo-600 text-indigo-600';
+                btnPy.className = 'pb-2 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800';
+            } else {
+                pythonSnippet.classList.remove('hidden');
+                nodejsSnippet.classList.add('hidden');
+                btnPy.className = 'pb-2 text-sm font-bold border-b-2 border-indigo-600 text-indigo-600';
+                btnNode.className = 'pb-2 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800';
+            }
+        }
+
+        function copyToClipboardText(text) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+        }
+
+        function copyServerCode() {
+            const isNodeHidden = document.getElementById('code-snippet-nodejs').classList.contains('hidden');
+            const textToCopy = isNodeHidden 
+                ? document.getElementById('code-snippet-python').innerText 
+                : document.getElementById('code-snippet-nodejs').innerText;
+
+            copyToClipboardText(textToCopy);
+            showToast('Đã copy mã nguồn Server vào Clipboard!', 'success');
+        }
+    </script>
+</body>
+</html>
