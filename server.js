@@ -5,7 +5,7 @@ const path = require('path');
 const { createClient } = require('@supabase/supabase-js');
 
 const app = express();
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
 
 if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SECRET_KEY) {
     console.error('Thiếu SUPABASE_URL hoặc SUPABASE_SECRET_KEY trong file .env');
